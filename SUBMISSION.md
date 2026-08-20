@@ -1,80 +1,264 @@
-# RecoveryOS — submission kit
+RecoveryOS — Buildathon Submission
 
-## The choice
+Track
 
-**Track:** 03 — AI Revenue Recovery  
-**Project:** RecoveryOS — close the revenue loop, not the trust gap
+03 — AI Revenue Recovery
 
-## Problem statement
+Project
 
-For merchants, lost revenue is not one problem: a payment can fail because a bank times out, a checkout can be abandoned, or an invoice can become overdue. Existing recovery tools either only surface the problem or apply blunt outreach. That leaves money unrecovered and risks irritating customers, violating consent preferences, or retrying a payment when it cannot succeed.
+RecoveryOS — Close the Revenue Loop, Not the Trust Gap
 
-## The winning statement
+Problem
 
-**RecoveryOS is an explainable AI recovery agent that turns payment-loss signals into the next safest revenue action — recovering money only when consent, confidence, and stopping rules allow it.**
+Merchants lose revenue through failed payments, abandoned checkout, and overdue invoices. The problem is not simply detecting these events. The difficult part is deciding what to do next without repeatedly retrying failed payments, contacting customers without consent, or escalating cases that require human judgment.
 
-Unlike a dashboard that only identifies loss, RecoveryOS closes the loop: it diagnoses the reason, chooses a bounded action, records why, and routes uncertain or unsafe cases to a human.
+RecoveryOS closes this loop by combining AI diagnosis with deterministic recovery policy.
 
-## What the prototype proves
+The Core Idea
 
-On a deterministic **240-case held-out synthetic batch**, RecoveryOS assessed **₹34,45,625** of at-risk revenue and recovered **₹14,92,599**. It deliberately protected **₹10,19,159** by refusing unsafe actions and routing **52** ambiguous or dispute-sensitive cases to review. The diagnosis model achieved **95.4% held-out accuracy** after training on a separate 500-record synthetic training set.
+RecoveryOS is an explainable AI recovery agent that turns payment-loss signals into the next safest revenue action — recovering money only when consent, confidence, and stopping rules allow it.
 
-The demo includes three failure-safe paths judges can inspect:
+Unlike a dashboard that only identifies lost revenue, RecoveryOS diagnoses the likely cause, recommends a bounded intervention, checks whether that intervention is permitted, records the reasoning, and routes uncertain cases to a human.
 
-1. No consent → no contact.
-2. Two prior attempts → hard stop, even with a high-confidence diagnosis.
-3. Diagnosis below 75% confidence or dispute signal → human review, no auto-action.
+What the Prototype Demonstrates
 
-## Architecture
+RecoveryOS evaluates a separate 240-case held-out synthetic batch after training its diagnosis component on 500 synthetic records.
 
-```text
+Metric
+
+Result
+
+Training records
+
+500
+
+Held-out cases
+
+240
+
+At-risk revenue assessed
+
+₹34,45,625
+
+Recovery reported in eligible-action cohort
+
+₹14,92,599
+
+Held-out diagnosis accuracy
+
+95.4%
+
+Revenue deliberately protected
+
+₹10,19,159
+
+Cases routed to human review
+
+52
+
+These are synthetic prototype results, not live merchant results. The recovery figure is measured against the eligible recovery cohort rather than treating all at-risk revenue as immediately recoverable.
+
+Safety and Guardrails
+
+No consent
+
+When customer contact is not permitted, the system does not initiate an outreach action.
+
+Retry limit
+
+Cases with two prior recovery attempts are stopped, regardless of model confidence.
+
+The prototype includes a case with 97% diagnosis confidence that is still blocked because the maximum retry threshold has already been reached.
+
+Low confidence
+
+Cases below the 75% diagnosis-confidence threshold are routed to human review rather than automatically acted upon.
+
+Dispute-sensitive cases
+
+Cases containing dispute signals are protected from automated recovery and routed for human judgment.
+
+Idempotency
+
+The action layer prevents the same recovery action from being executed repeatedly.
+
+Architecture
+
 Payment / checkout / invoice events
-             ↓
-      Case normalizer
-             ↓
-  Diagnosis model + confidence score
-             ↓
- Policy engine (consent, max attempts, confidence threshold)
-             ↓
-Bounded action: retry | secure link | human queue | stop
-             ↓
-   Audit ledger + batch recovery metrics
-```
+              ↓
+       Case normalizer
+              ↓
+ Diagnosis model + confidence
+              ↓
+ Policy engine
+ consent / confidence /
+ attempts / dispute checks
+              ↓
+ Bounded recovery action
+ retry | secure link | human | stop
+              ↓
+      Audit decision ledger
+              ↓
+       Batch-level metrics
 
-For production, replace the demo fixture with event/webhook ingestion, use a calibrated classifier measured on held-out data, call idempotent payment actions through a policy service, and persist the ledger in a tamper-evident store.
+The most important architectural boundary is between AI judgment and recovery actions:
 
-## Five-minute pitch structure
+The model recommends. The policy engine permits.
 
-**0:00–0:35 — Hook**  
-“When a payment fails, most merchants get a red dashboard number. Then a customer gets a generic reminder — or nothing. Both outcomes lose money. RecoveryOS asks a better question: what is the next *safe* action for this specific lost payment?”
+This prevents an AI model from having unbounded authority over recovery actions.
 
-**0:35–1:15 — Problem and stakes**  
-Describe failure types: bank timeout, insufficient funds, checkout friction, cash-flow delay. Emphasize that blind retry and indiscriminate chasing damage trust.
+Why this is meaningfully AI
 
-**1:15–2:30 — Live product walkthrough**  
-Run the batch. Call out the held-out accuracy and recovered amount, then filter to Protected. Open a case with two prior attempts and show the hard stop. Open a low-confidence or dispute case and show human review.
+The diagnosis layer interprets multiple pieces of event context to determine the likely reason for revenue loss and produce a confidence score.
 
-**2:30–3:30 — Why this is AI**  
-The model interprets payment context and produces a reason plus confidence; deterministic policy protects the customer. AI proposes, policy permits. The agent does not take an unbounded money action.
+The system distinguishes cases such as:
 
-**3:30–4:20 — Measured result**  
-State the exact held-out synthetic-batch result and clearly label it as synthetic prototype data. Explain that production evaluation is action-level incremental recovery lift, complaint rate, false-positive cost, and time-to-recovery.
+bank timeout;
 
-**4:20–5:00 — Close**  
-“Revenue recovery is not about sending more reminders. It is about having judgment at the moment a merchant is about to lose money. RecoveryOS recovers the right rupee, in the right way, and knows when to stop.”
+insufficient funds;
 
-## Form answers: build fields
+expired card;
 
-**Project name:** RecoveryOS — Close the Revenue Loop, Not the Trust Gap
+checkout price comparison;
 
-**What it solves:** RecoveryOS detects payment revenue at risk, diagnoses the likely reason, and executes only a consent-aware, bounded recovery workflow. It handles failed payments, abandoned checkout, and overdue invoices. Its policy engine prevents unsafe outreach, stops after two attempts, sends ambiguous cases to a human, and leaves an auditable explanation for each decision.
+cash-flow delay;
 
-**What broke, and how you got out:** During early batch design, the recovery metric accidentally counted every successful-looking action as recovered, even actions that policy should have blocked. I separated action eligibility from outcome, then added explicit protected and review states. I also found an evaluation-data generation bug that produced a non-varying cohort and invalid accuracy. I fixed it by separating sequential seeded training and held-out generators, then verified the API output. This made the result more honest: the system now shows revenue it intentionally did *not* chase, exposes reproducible held-out accuracy, and lets the reviewer inspect the exact guardrail that stopped it.
+dispute signal;
 
-## Submission checklist
+unknown intent.
 
-- Public GitHub repository with this README and no secrets.
-- Deploy the static prototype (GitHub Pages / Vercel / Netlify).
-- Record the five-minute video using the pitch structure above.
-- Complete the eligibility fields: personal email, name, college, graduation year, September in-person availability, preferred six or twelve month internship, and resume.
-- Submit before the 5 September deadline stated on the Buildathon page.
+The deterministic policy engine then applies business and safety constraints.
+
+This is deliberately not an LLM wrapper. The AI component has a measurable held-out evaluation, while the policy layer remains deterministic and inspectable.
+
+Explainability and Auditability
+
+Every recovery decision has an inspectable explanation containing:
+
+the original loss signal;
+
+the AI diagnosis;
+
+confidence;
+
+policy result;
+
+selected action;
+
+final outcome;
+
+decision history.
+
+The audit trail is designed to answer:
+
+Why did RecoveryOS act — or why did it refuse to act?
+
+A high-confidence prediction can still result in a protected outcome when the recovery history violates the retry policy.
+
+Evaluation Design
+
+The evaluation separates model development from testing:
+
+500 synthetic records are used for training.
+
+240 separate synthetic records form the held-out evaluation batch.
+
+The evaluation cohort is generated separately from the training cohort.
+
+Diagnosis accuracy is measured on held-out cases.
+
+Recovery outcomes are evaluated through the policy and action layers rather than treating every prediction as a successful recovery.
+
+What Broke and How It Was Fixed
+
+An early version of the recovery metric counted successful-looking actions as recovered revenue even when policy should have prevented those actions.
+
+The recovery engine was redesigned to separate:
+
+action eligibility
+
+recovery outcome
+
+protected revenue
+
+human review
+
+A second issue occurred in the evaluation-data generator, where an early cohort did not vary correctly and could have produced misleading accuracy. The training and held-out generators were separated, resolving the issue and making the evaluation reproducible.
+
+The resulting system makes its non-actions visible, rather than measuring success only by how much money it attempts to recover.
+
+Razorpay Test-Mode Integration
+
+RecoveryOS includes a guarded Razorpay test-mode integration.
+
+The integration supports:
+
+test-mode configuration verification;
+
+retrieval of recent test payments;
+
+policy-gated creation of test Payment Links;
+
+live-mode credential blocking;
+
+webhook signature verification at the integration boundary.
+
+The integration is intentionally separated from the diagnosis and policy layers so that AI recommendations cannot directly authorize unrestricted payment actions.
+
+Official references:
+
+Razorpay Payment Link API
+
+Razorpay Webhooks
+
+Product Flow
+
+Detect
+  ↓
+Identify revenue at risk
+  ↓
+Diagnose
+  ↓
+Understand why the loss occurred
+  ↓
+Decide
+  ↓
+Apply consent, confidence, retry and dispute policies
+  ↓
+Recover
+  ↓
+Retry, send a secure link, escalate, or stop
+  ↓
+Explain
+  ↓
+Record the decision and outcome
+
+The important distinction is that detection is only the first step. RecoveryOS creates a closed loop from detection through diagnosis, policy, action, and auditability.
+
+Production Path
+
+A production implementation would extend the prototype with:
+
+Real-time payment, checkout, and invoice event ingestion.
+
+A calibrated diagnosis model with precision, recall, and calibration reporting.
+
+Incremental recovery-lift measurement against a control cohort.
+
+Idempotent payment actions behind a dedicated policy service.
+
+Tamper-evident audit storage.
+
+Merchant review and approval workflows.
+
+Monitoring for complaint rate, false-positive cost, time-to-recovery, and policy-block rate.
+
+Closing Thesis
+
+RecoveryOS is not built around the assumption that every failed payment should be recovered automatically.
+
+It is built around a stronger principle:
+
+A good recovery agent should know both when to act and when not to act.
+
+Revenue recovery should not mean sending more reminders. It should mean choosing the right intervention for the right case, protecting the customer when the evidence is weak, and knowing when the safest action is to stop.
