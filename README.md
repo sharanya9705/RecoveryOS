@@ -1,51 +1,129 @@
 # RecoveryOS
 
-An explainable, bounded recovery agent for the Razorpay AI Buildathon — **Track 03: AI Revenue Recovery**.
+> Close the revenue loop — not the trust gap.
 
-## Problem
+**RecoveryOS** is an explainable AI revenue-recovery agent built for the **Razorpay AI Buildathon · Track 03: AI Revenue Recovery**. It detects payment revenue at risk, diagnoses the likely cause, chooses the least intrusive policy-approved action, and records an audit trail for every decision.
 
-Merchants lose revenue when payments fail, checkouts are abandoned, subscriptions lapse, or invoices go overdue. Recovery workflows are usually fragmented, indiscriminate, and hard to audit. Aggressive automation also creates customer-trust and compliance risk.
+## Why this matters
 
-## What this prototype demonstrates
+Merchants lose revenue through failed payments, abandoned checkouts, and overdue invoices. Most recovery systems either stop at detection or chase every customer with the same generic reminder. That loses recoverable revenue and creates complaint, consent, and trust risk.
 
-- Ingests a batch of 12 synthetic revenue-loss cases across failed payments, abandoned checkout and invoices.
-- Diagnoses a likely cause from payment context and supplies a confidence score.
-- Selects a minimum-intrusion intervention: bounded retry, one secure link, or human handoff.
-- Enforces guardrails: contact consent, 75% automation confidence, and a maximum of two prior recovery attempts.
-- Reports batch recovery performance and protects unsafe cases rather than acting on them.
-- Records a per-case explainable decision and immutable-style audit trail.
+RecoveryOS closes the loop safely:
+
+```text
+Loss event → diagnosis + confidence → policy gate → bounded action → auditable outcome
+```
+
+## What it demonstrates
+
+- A locally trained, explainable Naive Bayes diagnosis model.
+- A separate **500-record synthetic training set** and **240-case held-out evaluation batch**.
+- Multi-channel loss handling: failed payments, abandoned checkout, and overdue invoices.
+- A minimum-intrusion action policy: one idempotent retry, one secure Payment Link, or human handoff.
+- Hard guardrails: explicit contact consent, 75% automation confidence, dispute routing, and a two-attempt recovery limit.
+- An inspectable decision ledger, including cases RecoveryOS deliberately refuses to chase.
+- Optional Razorpay **test-mode-only** integration for payment retrieval and approved Payment Link creation.
+
+## Reproducible prototype results
+
+The demo is deterministic. On the included 240-case held-out **synthetic** evaluation batch, it reports:
+
+| Metric | Result |
+| --- | ---: |
+| At-risk revenue assessed | ₹34,45,625 |
+| Sandbox-recovered revenue | ₹14,92,599 |
+| Revenue protected by stopping rules | ₹10,19,159 |
+| Human-review cases | 52 |
+| Held-out diagnosis accuracy | 95.4% |
+
+These are synthetic prototype results, not live merchant results. Production evaluation must measure action-level incremental recovery lift, false-positive cost, complaint rate, and time-to-recovery.
+
+## Architecture
+
+```text
+Payment / checkout / invoice events
+              ↓
+   Contextual diagnosis model
+              ↓
+Policy engine: consent · confidence · dispute · retry limit
+              ↓
+Retry once | secure link once | human review | stop
+              ↓
+      Idempotent action ledger
+```
+
+**AI proposes; policy permits.** Low-confidence, disputed, non-consented, or over-contacted cases never auto-act.
 
 ## Run locally
 
-No packages or secrets are required. From this directory, run:
+### Requirements
+
+- Node.js 18+ (no external packages needed)
+
+### Start
 
 ```powershell
 node server.js
 ```
 
-Open `http://127.0.0.1:4173`, then select **Run recovery batch**. The server trains an explainable local diagnosis model on 500 synthetic training records and evaluates it over a separate 240-case held-out batch. The API also exposes action execution semantics with idempotency protection for the demo sandbox.
+Open [http://127.0.0.1:4173](http://127.0.0.1:4173), then select **Run recovery batch**.
+
+If port 4173 is already in use:
+
+```powershell
+$env:PORT=4174
+node server.js
+```
+
+Open [http://127.0.0.1:4174](http://127.0.0.1:4174).
 
 ## Razorpay test-mode integration
 
-RecoveryOS includes an optional, deliberately test-mode-only integration. Copy `.env.example` to `.env` and enter your own Razorpay **test** key ID, test key secret, and webhook secret locally. Never share the secret in chat or commit `.env`.
+The integration is intentionally guarded: it accepts **only** `rzp_test_...` credentials and blocks live-mode keys.
 
-- `GET /api/integrations/razorpay/status` confirms configuration without revealing credentials.
-- `GET /api/integrations/razorpay/payments?count=10` fetches recent test payments.
-- `POST /api/integrations/razorpay/recovery-links/:caseId` creates a one-time test Payment Link only when the policy permits the action. Live-mode keys are blocked in code.
+1. Copy `.env.example` to `.env`.
+2. Add your own Razorpay Test Key ID and Test Key Secret. Never commit or share `.env`.
+3. Restart the server.
+4. Check configuration at `GET /api/integrations/razorpay/status`.
 
-For the demo, create no more than a few links: Razorpay documents a 30 Payment Links limit per business in test mode. Configure test webhook delivery separately, and verify the `X-Razorpay-Signature` on the raw request body before recording an event. [Razorpay’s Payment Link API](https://razorpay.com/docs/api/payments/payment-links/create-standard/) and [webhook guidance](https://razorpay.com/docs/webhooks/) cover those behaviours.
+Available endpoints:
 
-## Submission framing
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/integrations/razorpay/status` | Confirm configuration without exposing credentials. |
+| `GET /api/integrations/razorpay/payments?count=10` | Fetch recent test payments. |
+| `POST /api/integrations/razorpay/recovery-links/:caseId` | Create a one-time test Payment Link only when policy permits it. |
 
-**Project:** RecoveryOS — Close the Revenue Loop, Not the Trust Gap
+Use only a few links in the demo. Razorpay documents a 30 Payment Links test-mode limit per business. Follow the official [Payment Link API](https://razorpay.com/docs/api/payments/payment-links/create-standard/) and [webhook security guidance](https://razorpay.com/docs/webhooks/) before connecting real events.
 
-**Track:** AI Revenue Recovery
+## Demo script
 
-**Measured batch result:** generated deterministically from a 240-case synthetic held-out evaluation batch. All results are prototype data and must be labelled as synthetic in the pitch. Never claim live merchant recovery until it has been run against an approved test-mode integration.
+1. Run the batch and point to the held-out accuracy, recovered revenue, and protected revenue.
+2. Filter to **Protected** and open a case that has already exhausted its two recovery attempts.
+3. Open a human-review case to show that a dispute or low confidence prevents automation.
+4. Explain the central design choice: the model can recommend an action, but it cannot override consent or policy.
+5. Create one approved **test-mode** Payment Link and show the case ID in the response.
+
+## Repository layout
+
+```text
+server.js       Local server, evaluation engine, policy API
+razorpay.js     Guarded Razorpay test-mode adapter
+app.js          Interactive demo UI
+index.html      Interface structure
+styles.css      Interface styling
+.env.example    Safe credential template
+SUBMISSION.md   Buildathon application and pitch kit
+```
 
 ## Production path
 
-1. Stream payment and checkout webhooks into an event store.
-2. Use a calibrated classifier with offline precision/recall and action-level lift evaluation.
-3. Execute only Razorpay-supported, idempotent payment actions through a policy service.
-4. Persist the audit trail to a tamper-evident store and give merchants a review queue.
+1. Ingest validated Razorpay webhooks and normalise events into a durable event store.
+2. Train and calibrate on consented historical data; measure precision, recall, and intervention lift on holdout cohorts.
+3. Keep actions idempotent, version every policy, and enforce approvals for high-risk actions.
+4. Verify webhook signatures on the raw request body and persist the audit trail to a tamper-evident store.
+5. Give merchants a review queue, feedback controls, and an easy opt-out path.
+
+---
+
+Built for the Razorpay AI Buildathon. The strongest recovery system is one that knows exactly when **not** to act.
