@@ -2,6 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const razorpay = require('./razorpay');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 4173);
@@ -9,6 +10,13 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 const CAUSES = ['bank_timeout', 'insufficient_funds', 'expired_card', 'issuer_decline', 'checkout_friction', 'cash_flow_delay', 'dispute_signal'];
 const labels = { bank_timeout: 'Bank timeout', insufficient_funds: 'Insufficient funds', expired_card: 'Expired card', issuer_decline: 'Issuer decline', checkout_friction: 'Checkout friction', cash_flow_delay: 'Cash-flow delay', dispute_signal: 'Dispute signal' };
 let actionLedger = new Map();
+
+function loadEnvFile() {
+  const file = path.join(ROOT, '.env');
+  if (!fs.existsSync(file)) return;
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim(); }
+}
+loadEnvFile();
 
 function rng(seed) { let value = seed >>> 0; return () => ((value = (value * 1664525 + 1013904223) >>> 0) / 4294967296); }
 function pick(random, values) { return values[Math.floor(random() * values.length)]; }
@@ -71,12 +79,19 @@ function serve(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname === '/api/batch') return json(res, batch);
   if (url.pathname === '/api/evaluation') return json(res, batch.evaluation);
+  if (url.pathname === '/api/integrations/razorpay/status') return json(res, { configured: razorpay.config().configured, testMode: razorpay.config().testMode, liveModeBlocked: true });
+  if (url.pathname === '/api/integrations/razorpay/payments') return razorpay.fetchRecentPayments(url.searchParams.get('count')).then(body => json(res, body)).catch(error => json(res, { error: error.message }, 400));
   if (url.pathname.startsWith('/api/actions/') && req.method === 'POST') {
     const id = url.pathname.split('/').pop(); const item = batch.cases.find(row => row.id === id);
     if (!item) return json(res, { error: 'Case not found' }, 404);
     if (actionLedger.has(id)) return json(res, { status: 'duplicate_prevented', auditId: actionLedger.get(id) });
     const auditId = `AUD-${Date.now().toString(36).toUpperCase()}`; actionLedger.set(id, auditId);
     return json(res, { status: item.outcome === 'recovered' ? 'executed_in_sandbox' : 'not_executed_by_policy', auditId, action: item.action });
+  }
+  if (url.pathname.startsWith('/api/integrations/razorpay/recovery-links/') && req.method === 'POST') {
+    const id = url.pathname.split('/').pop(); const item = batch.cases.find(row => row.id === id);
+    if (!item) return json(res, { error: 'Case not found' }, 404);
+    return razorpay.createRecoveryLink(item).then(link => json(res, { status: 'test_link_created', id: link.id, short_url: link.short_url, caseId: id })).catch(error => json(res, { error: error.message }, 400));
   }
   const requested = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
   const file = path.resolve(ROOT, requested);
