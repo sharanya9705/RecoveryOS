@@ -17,7 +17,13 @@ Merchants lose revenue when payments fail, checkouts are abandoned, subscription
 
 ## Run locally
 
-No build step or secrets are required. Open `index.html` in a browser, then select **Run recovery batch**.
+No packages or secrets are required. From this directory, run:
+
+```powershell
+node server.js
+```
+
+Open `http://127.0.0.1:4173`, then select **Run recovery batch**. The server trains an explainable local diagnosis model on 500 synthetic training records and evaluates it over a separate 240-case held-out batch. The API also exposes action execution semantics with idempotency protection for the demo sandbox.
 
 ## Submission framing
 
@@ -25,7 +31,7 @@ No build step or secrets are required. Open `index.html` in a browser, then sele
 
 **Track:** AI Revenue Recovery
 
-**Measured batch result:** ₹50,195 recovered from ₹99,791 at-risk revenue; ₹5,097 deliberately protected by stopping rules. Results are synthetic prototype data and must be labelled as such in the pitch.
+**Measured batch result:** generated deterministically from a 240-case synthetic held-out evaluation batch. All results are prototype data and must be labelled as synthetic in the pitch. Never claim live merchant recovery until it has been run against an approved test-mode integration.
 
 ## Production path
 

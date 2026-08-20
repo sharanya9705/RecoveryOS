@@ -37,7 +37,7 @@
         <article><p>At-risk revenue</p><strong id="atRisk">₹0</strong><small id="caseCount">0 cases assessed</small></article>
         <article><p>Recovered</p><strong id="recovered">₹0</strong><small id="recoveryRate">0% of eligible revenue</small></article>
         <article><p>Protected</p><strong id="protected">₹0</strong><small>stopped to preserve trust</small></article>
-        <article><p>Model confidence</p><strong id="confidence">—</strong><small>mean diagnosis confidence</small></article>
+        <article><p>Held-out accuracy</p><strong id="confidence">—</strong><small id="modelNote">diagnosis evaluation</small></article>
       </section>
 
       <section class="flow-section">
@@ -71,7 +71,7 @@
 
       <section class="why">
         <div><p class="eyebrow">WHY THIS IS AI, NOT AUTOMATION</p><h2>Judgment sits between the signal and the action.</h2></div>
-        <div class="why-copy"><p>Rules enforce policy. A lightweight diagnosis model interprets multi-event context — issuer downtime, customer retry intent, payment method, invoice age, consent and prior contact — to recommend the right intervention.</p><p>Low-confidence cases never auto-act. They are routed to a human with the evidence already assembled.</p></div>
+        <div class="why-copy"><p>Rules enforce policy. A locally trained Naive Bayes diagnosis model interprets event context — issuer state, payment method, invoice age and dispute indicators — to recommend the right intervention.</p><p>Low-confidence cases never auto-act. They are routed to a human with the evidence already assembled. The demo reports held-out accuracy separately from recovery outcomes.</p></div>
       </section>
     </main>
 
