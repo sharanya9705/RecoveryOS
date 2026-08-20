@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RecoveryOS — AI Revenue Recovery</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <nav class="nav">
+        <a class="brand" href="#top"><span>R</span> RecoveryOS</a>
+        <div class="nav-copy">Explainable AI revenue recovery</div>
+        <button id="resetButton" class="ghost">Reset demo</button>
+      </nav>
+
+      <section id="top" class="hero">
+        <div>
+          <p class="eyebrow">RAZORPAY AI BUILDATHON · TRACK 03</p>
+          <h1>Recover revenue.<br><em>Never customer trust.</em></h1>
+          <p class="lede">RecoveryOS finds at-risk payment revenue, diagnoses the cause, and runs only the next safe recovery action — with customer consent, stopping rules, and a decision trail for every rupee.</p>
+          <div class="hero-actions">
+            <button id="runButton" class="primary">Run recovery batch <span>→</span></button>
+            <a href="#cases" class="text-link">Inspect decisions ↓</a>
+          </div>
+        </div>
+        <aside class="trust-card">
+          <p class="card-label">NON-NEGOTIABLES</p>
+          <div class="guardrail"><i>✓</i><span>No retry without a recoverable failure</span></div>
+          <div class="guardrail"><i>✓</i><span>Never contact without consent</span></div>
+          <div class="guardrail"><i>✓</i><span>Hard stop after two attempts</span></div>
+          <div class="guardrail"><i>✓</i><span>Every action is reviewable</span></div>
+        </aside>
+      </section>
+
+      <section class="metrics" aria-label="Batch results">
+        <article><p>At-risk revenue</p><strong id="atRisk">₹0</strong><small id="caseCount">0 cases assessed</small></article>
+        <article><p>Recovered</p><strong id="recovered">₹0</strong><small id="recoveryRate">0% of eligible revenue</small></article>
+        <article><p>Protected</p><strong id="protected">₹0</strong><small>stopped to preserve trust</small></article>
+        <article><p>Model confidence</p><strong id="confidence">—</strong><small>mean diagnosis confidence</small></article>
+      </section>
+
+      <section class="flow-section">
+        <div class="section-heading"><p class="eyebrow">THE CLOSED LOOP</p><h2>Detection is only step one.</h2></div>
+        <div class="flow">
+          <div><b>01</b><h3>Detect</h3><p>Ingest failed payments, abandoned checkouts and overdue invoices.</p></div>
+          <div><b>02</b><h3>Diagnose</h3><p>Classify the loss reason from event signals, not guesswork.</p></div>
+          <div><b>03</b><h3>Decide</h3><p>Choose the least intrusive eligible action with a confidence threshold.</p></div>
+          <div><b>04</b><h3>Recover</h3><p>Execute a bounded retry, secure link, or human handoff.</p></div>
+        </div>
+      </section>
+
+      <section id="cases" class="case-section">
+        <div class="section-heading row"><div><p class="eyebrow">LIVE DECISION LEDGER</p><h2>Every recovery is explainable.</h2></div><div id="batchStatus" class="status">Ready to assess batch</div></div>
+        <div class="toolbar">
+          <div class="filters" role="group" aria-label="Filter cases">
+            <button class="filter active" data-filter="all">All cases</button>
+            <button class="filter" data-filter="recovered">Recovered</button>
+            <button class="filter" data-filter="stopped">Protected</button>
+            <button class="filter" data-filter="review">Review queue</button>
+          </div>
+          <p id="ledgerSummary">Load the batch to generate decisions.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Case</th><th>Loss signal</th><th>AI diagnosis</th><th>Safe next action</th><th>Outcome</th><th></th></tr></thead>
+            <tbody id="caseRows"><tr class="empty"><td colspan="6">No batch run yet. Your audit trail will appear here.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="why">
+        <div><p class="eyebrow">WHY THIS IS AI, NOT AUTOMATION</p><h2>Judgment sits between the signal and the action.</h2></div>
+        <div class="why-copy"><p>Rules enforce policy. A lightweight diagnosis model interprets multi-event context — issuer downtime, customer retry intent, payment method, invoice age, consent and prior contact — to recommend the right intervention.</p><p>Low-confidence cases never auto-act. They are routed to a human with the evidence already assembled.</p></div>
+      </section>
+    </main>
+
+    <dialog id="detailDialog">
+      <div class="dialog-head"><div><p class="eyebrow">DECISION EXPLAINER</p><h2 id="detailTitle">Case</h2></div><button id="closeDialog" class="icon" aria-label="Close">×</button></div>
+      <div id="detailContent"></div>
+    </dialog>
+    <script src="./app.js"></script>
+  </body>
+</html>
